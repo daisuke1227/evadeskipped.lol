@@ -595,10 +595,19 @@ if (window.self !== window.top) {
         }
     }
 
-    function showDestinationButton(url) {
-        const statusEl = document.getElementById("evade-status");
-        if (statusEl) {
-            const newTabTarget = getSettings().openNewTab ? "_blank" : "_self";
+   function showDestinationButton(url) {
+    const newTab = getSettings().openNewTab;
+
+    updateStatus("Bypass complete! Redirecting...");
+
+    setTimeout(() => {
+        if (newTab) {
+            window.open(url, "_blank", "noopener");
+        } else {
+            window.location.href = url;
+        }
+    }, 500); // small delay so user sees the message
+}
             
             statusEl.innerHTML = `
                 <span style="display:block; margin-bottom:15px; color:#4caf9e;">Bypass complete!</span>
