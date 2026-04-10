@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Evade by skipped.lol
 // @namespace    http://tampermonkey.net/
-// @version      2.2.25
+// @version      2.2.23
 // @description  A client-sided bypass for work.ink.
 // @author       skipped.lol
 //
@@ -598,9 +598,50 @@ if (window.self !== window.top) {
     function showDestinationButton(url) {
         const statusEl = document.getElementById("evade-status");
         if (statusEl) {
-            statusEl.innerHTML = `<span style="display:block; margin-bottom:15px; color:#4caf9e;">Redirecting...</span>`;
+            const newTabTarget = getSettings().openNewTab ? "_blank" : "_self";
+            
+            statusEl.innerHTML = `
+                <span style="display:block; margin-bottom:15px; color:#4caf9e;">Bypass complete!</span>
+                <a id="evade-destination-btn" href="${url}" target="${newTabTarget}" rel="noopener" style="
+                    display: inline-block;
+                    background: linear-gradient(135deg, #4c82af 0%, #3a6a8f 100%);
+                    color: white;
+                    text-decoration: none;
+                    border: none;
+                    padding: 14px 32px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-family: 'Poppins', sans-serif;
+                    box-shadow: 0 4px 15px rgba(76, 130, 175, 0.4);
+                    transition: transform 0.2s, box-shadow 0.2s;
+                    position: relative;
+                    z-index: 9999;
+                ">Open Destination</a>
+            `;
+
+            const btn = document.getElementById("evade-destination-btn");
+            
+            originalAddEventListener.call(btn, "click", (e) => {
+                e.stopImmediatePropagation();
+                if (newTabTarget === "_blank") {
+                    window.open(url, "_blank", "noopener");
+                } else {
+                    window.location.href = url;
+                }
+            }, true);
+
+            originalAddEventListener.call(btn, "mouseenter", () => {
+                btn.style.transform = "scale(1.05)";
+                btn.style.boxShadow = "0 6px 20px rgba(76, 130, 175, 0.5)";
+            });
+
+            originalAddEventListener.call(btn, "mouseleave", () => {
+                btn.style.transform = "scale(1)";
+                btn.style.boxShadow = "0 4px 15px rgba(76, 130, 175, 0.4)";
+            });
         }
-        window.location.href = url;
     }
 
     function showCopyButton(textToCopy) {
@@ -1308,10 +1349,91 @@ if (window.self !== window.top) {
                                 isBypassed = true;
                                 (function (destinationUrl) {
                                     const statusEl = document.getElementById("evade-status");
-                                    if (statusEl) {
-                                        statusEl.innerHTML = `<span style="display:block; margin-bottom:15px; color:#4caf9e;">Redirecting...</span>`;
-                                    }
-                                    window.location.href = destinationUrl;
+                                    if (!statusEl) return;
+
+                                    const newTabTarget = getSettings().openNewTab ? "_blank" : "_self";
+                                    let isExpired = false;
+
+                                    statusEl.innerHTML = `
+                                        <span style="display:block; margin-bottom:8px; color:#4caf9e;">Bypass complete!</span>
+                                        <span id="evade-timer-text" style="display:block; margin-bottom:15px; color:#ff5252; font-size:13px;">Link expires in 9s</span>
+                                        <a id="evade-destination-btn" href="${destinationUrl}" target="${newTabTarget}" rel="noopener" style="
+                                            display: inline-block;
+                                            background: linear-gradient(135deg, #4c82af 0%, #3a6a8f 100%);
+                                            color: white;
+                                            text-decoration: none;
+                                            border: none;
+                                            padding: 14px 32px;
+                                            font-size: 16px;
+                                            font-weight: 600;
+                                            border-radius: 8px;
+                                            cursor: pointer;
+                                            font-family: 'Poppins', sans-serif;
+                                            box-shadow: 0 4px 15px rgba(76, 130, 175, 0.4);
+                                            transition: transform 0.2s, box-shadow 0.2s;
+                                            position: relative;
+                                            z-index: 9999;
+                                        ">Open Destination</a>
+                                    `;
+
+                                    const btn = document.getElementById("evade-destination-btn");
+                                    const timerText = document.getElementById("evade-timer-text");
+
+                                    const invalidateBtn = () => {
+                                        if (!isExpired) {
+                                            isExpired = true;
+                                            clearInterval(countdownInterval);
+                                            statusEl.innerHTML = '<span style="display:block; color:#ff5252; font-size:16px;">This hash has already been used! Refresh the page to bypass the link again.</span>';
+                                            statusEl.style.color = "#ff5252";
+                                        }
+                                        return true;
+                                    };
+
+                                    originalAddEventListener.call(btn, "click", (e) => {
+                                        if (isExpired) {
+                                            e.preventDefault();
+                                        } else {
+                                            e.preventDefault();
+                                            e.stopImmediatePropagation();
+                                            invalidateBtn();
+                                            if (newTabTarget === "_blank") {
+                                                window.open(destinationUrl, "_blank", "noopener");
+                                            } else {
+                                                window.location.href = destinationUrl;
+                                            }
+                                        }
+                                    }, true);
+
+                                    originalAddEventListener.call(btn, "auxclick", (e) => {
+                                        if (e.button === 1) {
+                                            if (isExpired) return void e.preventDefault();
+                                            invalidateBtn();
+                                        }
+                                    }, true);
+
+                                    originalAddEventListener.call(btn, "mouseenter", () => {
+                                        if (!isExpired) {
+                                            btn.style.transform = "scale(1.05)";
+                                            btn.style.boxShadow = "0 6px 20px rgba(76, 130, 175, 0.5)";
+                                        }
+                                    });
+
+                                    originalAddEventListener.call(btn, "mouseleave", () => {
+                                        btn.style.transform = "scale(1)";
+                                        btn.style.boxShadow = "0 4px 15px rgba(76, 130, 175, 0.4)";
+                                    });
+
+                                    let secondsLeft = 9;
+                                    const countdownInterval = setInterval(() => {
+                                        secondsLeft = Math.round(10 * (secondsLeft - 1)) / 10;
+                                        if (timerText) timerText.textContent = `Link expires in ${secondsLeft}s`;
+                                        if (secondsLeft <= 0) {
+                                            clearInterval(countdownInterval);
+                                            isExpired = true;
+                                            statusEl.innerHTML = '<span style="display:block; color:#ff5252; font-size:16px;">Your hash expired. Please refresh the page and bypass your link again.</span>';
+                                            statusEl.style.color = "#ff5252";
+                                        }
+                                    }, 1000);
                                 })(parsed.resp);
                             }
                         } else {
