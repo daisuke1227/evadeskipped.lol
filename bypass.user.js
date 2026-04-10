@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Evade by skipped.lol
 // @namespace    http://tampermonkey.net/
-// @version      2.2.23
+// @version      2.2.24
 // @description  A client-sided bypass for work.ink.
 // @author       skipped.lol
 //
